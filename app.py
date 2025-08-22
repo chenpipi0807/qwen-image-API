@@ -220,6 +220,13 @@ def check_task(task_id):
 @app.route('/edit-image', methods=['POST'])
 def edit_image():
     """Edit image using Qwen Image Edit API"""
+    print("="*50)
+    print("图像编辑请求开始")
+    print(f"请求方法: {request.method}")
+    print(f"Content-Type: {request.content_type}")
+    print(f"表单数据: {dict(request.form)}")
+    print(f"文件数据: {list(request.files.keys())}")
+    print("="*50)
     try:
         # Check if image file is uploaded
         if 'image' not in request.files:
@@ -245,12 +252,41 @@ def edit_image():
             file.save(file_path)
             
             try:
+                # Check image dimensions before processing
+                with Image.open(file_path) as img:
+                    original_width, original_height = img.size
+                    file_size = os.path.getsize(file_path)
+                    print(f"原始图像信息:")
+                    print(f"  - 尺寸: {original_width}x{original_height}")
+                    print(f"  - 文件大小: {file_size / (1024*1024):.2f} MB")
+                    print(f"  - 格式: {img.format}")
+                    print(f"  - 模式: {img.mode}")
+                    
+                    # Check API requirements
+                    if original_width < 384 or original_height < 384:
+                        print(f"警告: 图像尺寸过小 ({original_width}x{original_height})，API要求最小384像素")
+                    if original_width > 3072 or original_height > 3072:
+                        print(f"警告: 图像尺寸过大 ({original_width}x{original_height})，API要求最大3072像素")
+                    if file_size > 10 * 1024 * 1024:
+                        print(f"警告: 文件大小过大 ({file_size / (1024*1024):.2f} MB)，API要求最大10MB")
+                
                 # Apply image expansion if enabled
                 if enable_expansion:
+                    print(f"启用智能扩图: {target_ratio}, 最大尺寸: {max_dimension}")
                     file_path = expand_image_to_ratio(file_path, target_ratio, max_dimension)
+                    
+                    # Check expanded image dimensions
+                    with Image.open(file_path) as expanded_img:
+                        exp_width, exp_height = expanded_img.size
+                        exp_file_size = os.path.getsize(file_path)
+                        print(f"扩图后图像信息:")
+                        print(f"  - 尺寸: {exp_width}x{exp_height}")
+                        print(f"  - 文件大小: {exp_file_size / (1024*1024):.2f} MB")
                 
                 # Convert image to base64
+                print("开始转换图像为Base64...")
                 image_base64 = encode_image_to_base64(file_path)
+                print(f"Base64编码完成，长度: {len(image_base64)} 字符")
                 
                 # API request headers
                 headers = {
@@ -282,11 +318,42 @@ def edit_image():
                     }
                 }
                 
-                response = requests.post(
-                    'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
-                    headers=headers,
-                    json=payload
-                )
+                print(f"=== 发送API请求 ===")
+                print(f"URL: https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation")
+                print(f"编辑指令: {edit_prompt}")
+                print(f"API Key: {API_KEYS.get('qwen-api-key', 'NOT_FOUND')[:20]}...")
+                print(f"Base64图像长度: {len(image_base64)} 字符")
+                print(f"请求参数: enable_expansion={enable_expansion}, target_ratio={target_ratio}, max_dimension={max_dimension}")
+                
+                start_time = time.time()
+                print(f"开始时间: {datetime.now().strftime('%H:%M:%S')}")
+                
+                try:
+                    response = requests.post(
+                        'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
+                        headers=headers,
+                        json=payload,
+                        timeout=60
+                    )
+                    
+                    end_time = time.time()
+                    duration = end_time - start_time
+                    print(f"=== API响应 ===")
+                    print(f"响应时间: {duration:.2f}秒")
+                    print(f"状态码: {response.status_code}")
+                    print(f"响应头: {dict(response.headers)}")
+                    
+                    if response.status_code == 200:
+                        print(f"响应内容: {response.text[:1000]}...")
+                    else:
+                        print(f"错误响应: {response.text}")
+                        
+                except requests.exceptions.Timeout:
+                    print("请求超时 (60秒)")
+                    raise Exception("API请求超时")
+                except requests.exceptions.RequestException as e:
+                    print(f"请求异常: {str(e)}")
+                    raise
                 
                 # Clean up uploaded file
                 os.remove(file_path)

@@ -556,7 +556,7 @@
                 <div class="file-upload-text">点击选择图像文件</div>
                 <div class="file-upload-hint">支持 JPG、PNG、BMP、TIFF、WEBP、GIF 格式，最大 10MB</div>
             `;
-            resultSection.classList.remove('show');
+            // resultSection.classList.remove('show'); // 移除未定义的变量
         }
 
         // Toggle expansion settings
@@ -652,38 +652,77 @@
             // Show loading state and start timer
             loading.classList.add('show');
             editBtn.disabled = true;
-            resultSection.classList.remove('show');
+            // resultSection.classList.remove('show'); // 移除未定义的变量
             startTimer();
 
             try {
+                console.log('=== 开始图像编辑请求 ===');
+                console.log('图像文件:', imageFile);
+                console.log('编辑指令:', editPrompt);
+                console.log('启用扩图:', enableExpansion.checked);
+                
                 const formData = new FormData();
                 formData.append('image', imageFile);
                 formData.append('edit_prompt', editPrompt);
                 
                 // Add expansion parameters if enabled
                 if (enableExpansion.checked) {
+                    const targetRatio = document.getElementById('targetRatio').value;
+                    const maxDimension = document.getElementById('maxDimension').value;
                     formData.append('enable_expansion', 'true');
-                    formData.append('target_ratio', document.getElementById('targetRatio').value);
-                    formData.append('max_dimension', document.getElementById('maxDimension').value);
+                    formData.append('target_ratio', targetRatio);
+                    formData.append('max_dimension', maxDimension);
+                    console.log('扩图参数:', { targetRatio, maxDimension });
                 }
 
+                // 打印FormData内容
+                console.log('FormData内容:');
+                for (let [key, value] of formData.entries()) {
+                    if (key === 'image') {
+                        console.log(`  ${key}:`, value.name, value.size, 'bytes');
+                    } else {
+                        console.log(`  ${key}:`, value);
+                    }
+                }
+
+                console.log('发送请求到 /edit-image...');
+                const startTime = Date.now();
+                
                 const response = await fetch('/edit-image', {
                     method: 'POST',
                     body: formData
                 });
 
+                const endTime = Date.now();
+                console.log(`请求耗时: ${endTime - startTime}ms`);
+                console.log('响应状态:', response.status, response.statusText);
+                console.log('响应头:', Object.fromEntries(response.headers.entries()));
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('错误响应内容:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}\n${errorText}`);
+                }
+
                 const data = await response.json();
+                console.log('响应数据:', data);
 
                 resetLoadingState();
 
                 if (data.success) {
+                    console.log('编辑成功，显示结果');
                     showResult(data.image_url);
                 } else {
+                    console.error('编辑失败:', data.error);
                     showAlert(data.error || '图像编辑失败');
                 }
             } catch (error) {
+                console.error('=== 图像编辑错误 ===');
+                console.error('错误类型:', error.constructor.name);
+                console.error('错误消息:', error.message);
+                console.error('错误堆栈:', error.stack);
                 resetLoadingState();
-                showAlert('网络错误，请稍后重试');
+                showAlert(`请求失败: ${error.message}`);
             }
         });
 

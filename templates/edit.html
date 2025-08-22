@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 图像编辑 - 通义千问</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .nav-link {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 10px 15px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: #f0f2ff;
+            transform: translateY(-50%) translateX(5px);
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .left-panel {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+
+        .right-panel {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .file-upload {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-upload-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-upload-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            border: 3px dashed #ccc;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+            min-height: 200px;
+        }
+
+        .file-upload-label:hover {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+
+        .file-upload-icon {
+            font-size: 3rem;
+            color: #ccc;
+            margin-bottom: 15px;
+        }
+
+        .file-upload-text {
+            color: #666;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        .file-upload-hint {
+            color: #999;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .preview-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .preview-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            box-shadow: 0 10px 20px rgba(108, 117, 125, 0.3);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-placeholder {
+            text-align: center;
+            color: #666;
+            padding: 60px 20px;
+            border: 2px dashed #ddd;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .result-content {
+            margin-top: 20px;
+        }
+
+        .result-image {
+            max-width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+
+        .alert-error {
+            background: #fee;
+            color: #c33;
+            border-left: 4px solid #c33;
+        }
+
+        .alert-success {
+            background: #efe;
+            color: #363;
+            border-left: 4px solid #363;
+        }
+
+        .parameter-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .examples {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .examples h4 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .example-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid #667eea;
+        }
+
+        .example-item:hover {
+            background: #f0f2ff;
+            transform: translateX(5px);
+        }
+
+        .example-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-label {
+            cursor: pointer;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .timing-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 10px 15px;
+            margin-top: 15px;
+            color: #667eea;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .left-panel, .right-panel {
+                padding: 25px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .file-upload-label {
+                padding: 30px 15px;
+                min-height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/" class="nav-link"><i class="fas fa-arrow-left"></i> 返回首页</a>
+            <h1><i class="fas fa-edit"></i> AI 图像编辑</h1>
+        </div>
+
+        <div class="main-content">
+            <!-- Left Panel - Controls -->
+            <div class="left-panel">
+                <form id="editForm">
+                    <div class="form-group">
+                        <label class="form-label" for="editImage">
+                            <i class="fas fa-upload"></i> 上传图像 *
+                        </label>
+                        <div class="file-upload">
+                            <input type="file" id="editImage" class="file-upload-input" accept="image/*" required>
+                            <label for="editImage" class="file-upload-label" id="uploadLabel">
+                                <i class="fas fa-cloud-upload-alt file-upload-icon"></i>
+                                <div class="file-upload-text">点击选择图像文件</div>
+                                <div class="file-upload-hint">支持 JPG、PNG、BMP、TIFF、WEBP、GIF 格式，最大 10MB</div>
+                            </label>
+                        </div>
+                        <div class="preview-container" id="imagePreview"></div>
+                    </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="editPrompt">
+                        <i class="fas fa-wand-magic-sparkles"></i> 编辑指令 *
+                    </label>
+                    <textarea 
+                        id="editPrompt" 
+                        class="form-textarea" 
+                        placeholder="请详细描述您想要对图像进行的编辑，例如：将背景改为海滩日落场景，添加一只飞翔的海鸥，让人物表情更加开心..."
+                        required
+                    ></textarea>
+                    <div class="parameter-info">
+                        <i class="fas fa-info-circle"></i> 支持中英文指令，描述越详细效果越好。可以进行物体增删、位置调整、风格变换、色彩修改等操作。
+                    </div>
+
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-expand-arrows-alt"></i> 智能扩图设置
+                    </label>
+                    <div class="checkbox-group" style="margin-bottom: 15px;">
+                        <input type="checkbox" id="enableExpansion" class="checkbox-input">
+                        <label for="enableExpansion" class="checkbox-label">
+                            启用智能扩图
+                        </label>
+                    </div>
+                    <div class="parameter-info" style="margin-bottom: 20px;">
+                        <i class="fas fa-info-circle"></i> 自动将图像扩展到指定比例，使用白色填充，然后缩放到目标尺寸。
+                    </div>
+
+                    <div id="expansionSettings" style="display: none;">
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label class="form-label" for="targetRatio">
+                                <i class="fas fa-crop"></i> 目标比例
+                            </label>
+                            <select id="targetRatio" class="form-input">
+                                <option value="1:1">1:1 正方形</option>
+                                <option value="4:3">4:3 横屏</option>
+                                <option value="3:4">3:4 竖屏</option>
+                                <option value="16:9">16:9 宽屏</option>
+                                <option value="9:16">9:16 竖屏</option>
+                                    <option value="3:2">3:2 横屏</option>
+                                    <option value="2:3">2:3 竖屏</option>
+                                    <option value="21:9">21:9 超宽屏</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="maxDimension">
+                                    <i class="fas fa-ruler"></i> 最长边尺寸 (像素)
+                                </label>
+                                <input 
+                                    type="number" 
+                                    id="maxDimension" 
+                                    class="form-input" 
+                                    value="1536" 
+                                    min="512" 
+                                    max="2048" 
+                                    step="64"
+                                    placeholder="1536"
+                                >
+                                <div class="parameter-info">
+                                    <i class="fas fa-info-circle"></i> 扩图后的最长边尺寸，推荐1536像素。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn" id="editBtn">
+                        <i class="fas fa-magic"></i> 开始编辑图像
+                    </button>
+                    
+                    <button type="button" class="btn btn-secondary" id="clearBtn" onclick="clearForm()">
+                        <i class="fas fa-refresh"></i> 重新选择
+                    </button>
+                </form>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p><strong>正在编辑图像...</strong></p>
+                    <p>AI正在理解您的指令并进行精确编辑</p>
+                    <div class="timing-info" id="timingInfo" style="display: none;">
+                        <i class="fas fa-clock"></i> 已耗时: <span id="elapsedTime">0</span> 秒
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Results -->
+            <div class="right-panel">
+                <h3><i class="fas fa-star"></i> 编辑结果</h3>
+                <div class="result-placeholder" id="resultPlaceholder">
+                    <i class="fas fa-image" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.3;"></i>
+                    <p>上传图像并输入编辑指令后，AI编辑结果将在此显示</p>
+                </div>
+                <div class="result-content" id="resultContent"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // DOM elements
+        const editForm = document.getElementById('editForm');
+        const loading = document.getElementById('loading');
+        const resultContent = document.getElementById('resultContent');
+        const editBtn = document.getElementById('editBtn');
+        const imagePreview = document.getElementById('imagePreview');
+        const editImage = document.getElementById('editImage');
+        const uploadLabel = document.getElementById('uploadLabel');
+        const enableExpansion = document.getElementById('enableExpansion');
+        const expansionSettings = document.getElementById('expansionSettings');
+        const resultPlaceholder = document.getElementById('resultPlaceholder');
+
+        // Utility functions
+        function showAlert(message, type = 'error') {
+            const alertClass = type === 'error' ? 'alert-error' : 'alert-success';
+            resultPlaceholder.style.display = 'none';
+            resultContent.innerHTML = `<div class="alert ${alertClass}">${message}</div>`;
+        }
+
+        function showResult(imageUrl, title = '图像编辑完成') {
+            resultPlaceholder.style.display = 'none';
+            resultContent.innerHTML = `
+                <h4><i class="fas fa-check-circle"></i> ${title}</h4>
+                <img src="${imageUrl}" alt="AI编辑图像" class="result-image">
+                <p style="margin-top: 15px; text-align: center;">
+                    <a href="${imageUrl}" target="_blank" class="btn" style="display: inline-block; width: auto; padding: 12px 25px; margin-right: 10px;">
+                        <i class="fas fa-external-link-alt"></i> 查看原图
+                    </a>
+                    <a href="${imageUrl}" download class="btn" style="display: inline-block; width: auto; padding: 12px 25px; background: #28a745;">
+                        <i class="fas fa-download"></i> 下载图像
+                    </a>
+                </p>
+            `;
+        }
+
+        function resetLoadingState() {
+            loading.classList.remove('show');
+            editBtn.disabled = false;
+            stopTimer();
+        }
+
+        function setPrompt(text) {
+            document.getElementById('editPrompt').value = text;
+        }
+
+        function clearForm() {
+            editForm.reset();
+            imagePreview.innerHTML = '';
+            resultPlaceholder.style.display = 'block';
+            resultContent.innerHTML = '';
+            uploadLabel.innerHTML = `
+                <i class="fas fa-cloud-upload-alt file-upload-icon"></i>
+                <div class="file-upload-text">点击选择图像文件</div>
+                <div class="file-upload-hint">支持 JPG、PNG、BMP、TIFF、WEBP、GIF 格式，最大 10MB</div>
+            `;
+            resultSection.classList.remove('show');
+        }
+
+        // Toggle expansion settings
+        enableExpansion.addEventListener('change', (e) => {
+            expansionSettings.style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        // Image preview
+        editImage.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                // Validate file type
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/bmp', 'image/tiff', 'image/webp', 'image/gif'];
+                if (!allowedTypes.includes(file.type)) {
+                    showAlert('不支持的文件格式。请选择 JPG、PNG、BMP、TIFF、WEBP 或 GIF 格式的图像文件。');
+                    e.target.value = '';
+                    return;
+                }
+                
+                // Validate file size (10MB limit)
+                if (file.size > 10 * 1024 * 1024) {
+                    showAlert('文件大小超过限制。请选择小于 10MB 的图像文件。');
+                    e.target.value = '';
+                    return;
+                }
+                
+                uploadLabel.innerHTML = `
+                    <i class="fas fa-check-circle file-upload-icon" style="color: #28a745;"></i>
+                    <div class="file-upload-text" style="color: #28a745;">已选择: ${file.name}</div>
+                    <div class="file-upload-hint">点击重新选择文件</div>
+                `;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imagePreview.innerHTML = `
+                        <img src="${e.target.result}" alt="预览图像" class="preview-image">
+                        <div class="preview-info">
+                            <i class="fas fa-info-circle"></i> 
+                            文件名: ${file.name} | 
+                            大小: ${(file.size / 1024 / 1024).toFixed(2)} MB | 
+                            类型: ${file.type}
+                        </div>
+                    `;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                clearForm();
+            }
+        });
+
+        // Timer variables
+        let startTime;
+        let timerInterval;
+
+        function startTimer() {
+            startTime = Date.now();
+            const timingInfo = document.getElementById('timingInfo');
+            const elapsedTime = document.getElementById('elapsedTime');
+            
+            timingInfo.style.display = 'block';
+            
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                elapsedTime.textContent = elapsed;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            document.getElementById('timingInfo').style.display = 'none';
+        }
+
+        // Form submission
+        editForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const imageFile = editImage.files[0];
+            const editPrompt = document.getElementById('editPrompt').value.trim();
+            
+            if (!imageFile) {
+                showAlert('请选择要编辑的图像文件');
+                return;
+            }
+            
+            if (!editPrompt) {
+                showAlert('请输入编辑指令');
+                return;
+            }
+
+            // Show loading state and start timer
+            loading.classList.add('show');
+            editBtn.disabled = true;
+            resultSection.classList.remove('show');
+            startTimer();
+
+            try {
+                const formData = new FormData();
+                formData.append('image', imageFile);
+                formData.append('edit_prompt', editPrompt);
+                
+                // Add expansion parameters if enabled
+                if (enableExpansion.checked) {
+                    formData.append('enable_expansion', 'true');
+                    formData.append('target_ratio', document.getElementById('targetRatio').value);
+                    formData.append('max_dimension', document.getElementById('maxDimension').value);
+                }
+
+                const response = await fetch('/edit-image', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                resetLoadingState();
+
+                if (data.success) {
+                    showResult(data.image_url);
+                } else {
+                    showAlert(data.error || '图像编辑失败');
+                }
+            } catch (error) {
+                resetLoadingState();
+                showAlert('网络错误，请稍后重试');
+            }
+        });
+
+        // Drag and drop functionality
+        const uploadArea = uploadLabel;
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            uploadArea.style.borderColor = '#667eea';
+            uploadArea.style.background = '#f0f2ff';
+        }
+
+        function unhighlight(e) {
+            uploadArea.style.borderColor = '#ccc';
+            uploadArea.style.background = '#f8f9fa';
+        }
+
+        uploadArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                editImage.files = files;
+                editImage.dispatchEvent(new Event('change'));
+            }
+        }
+    </script>
+</body>
+</html>

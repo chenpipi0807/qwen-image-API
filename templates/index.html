@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>通义千问 AI 图像工具</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            margin-right: 20px;
+            color: #667eea;
+        }
+
+        .card-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .card-description {
+            color: #666;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .card-features {
+            list-style: none;
+            padding: 0;
+        }
+
+        .card-features li {
+            padding: 8px 0;
+            color: #555;
+            font-size: 0.95rem;
+        }
+
+        .card-features li i {
+            color: #667eea;
+            margin-right: 10px;
+            width: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-magic"></i> 通义千问 AI 图像工具</h1>
+            <p>强大的AI图像生成与编辑平台</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Image Generation Card -->
+            <a href="/generate" class="card">
+                <div class="card-header">
+                    <i class="fas fa-image card-icon"></i>
+                    <h2 class="card-title">AI 图像生成</h2>
+                </div>
+                
+                <p class="card-description">
+                    通过文本描述生成高质量的AI图像，支持多种风格和尺寸选择。
+                </p>
+                
+                <ul class="card-features">
+                    <li><i class="fas fa-palette"></i> 多种图像尺寸和比例</li>
+                    <li><i class="fas fa-wand-magic-sparkles"></i> 智能提示词优化</li>
+                    <li><i class="fas fa-shield-alt"></i> 可选水印保护</li>
+                    <li><i class="fas fa-filter"></i> 反向提示词过滤</li>
+                </ul>
+            </a>
+
+            <!-- Image Editing Card -->
+            <a href="/edit" class="card">
+                <div class="card-header">
+                    <i class="fas fa-edit card-icon"></i>
+                    <h2 class="card-title">AI 图像编辑</h2>
+                </div>
+                
+                <p class="card-description">
+                    上传图像并通过自然语言指令进行精准编辑和修改。
+                </p>
+                
+                <ul class="card-features">
+                    <li><i class="fas fa-upload"></i> 支持多种图像格式</li>
+                    <li><i class="fas fa-language"></i> 中英文编辑指令</li>
+                    <li><i class="fas fa-magic"></i> 智能物体增删改</li>
+                    <li><i class="fas fa-adjust"></i> 风格和色彩调整</li>
+                </ul>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

@@ -9,6 +9,10 @@ import uuid
 from datetime import datetime
 from PIL import Image, ImageOps
 import io
+import socket
+import threading
+import subprocess
+import re
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -393,5 +397,166 @@ def edit_image():
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+def get_all_local_ips():
+    """Get all local IP addresses"""
+    ips = []
+    try:
+        # Get network configuration on Windows
+        result = subprocess.run(['ipconfig'], capture_output=True, text=True, shell=True)
+        
+        # Try multiple patterns to match different Windows versions
+        patterns = [
+            r'IPv4.*?[：:]\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)',  # Chinese version
+            r'IPv4 Address.*?[：:]\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)',  # English version
+            r'IP Address.*?[：:]\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)',  # Alternative format
+        ]
+        
+        for pattern in patterns:
+            matches = re.findall(pattern, result.stdout, re.IGNORECASE)
+            for ip in matches:
+                # Skip localhost and link-local addresses
+                if not ip.startswith('127.') and not ip.startswith('169.254.') and ip not in ips:
+                    ips.append(ip)
+                    
+        # If no matches found, try a simpler approach
+        if not ips:
+            # Look for any IP pattern in the output
+            simple_pattern = r'([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)'
+            all_matches = re.findall(simple_pattern, result.stdout)
+            for ip in all_matches:
+                if (not ip.startswith('127.') and 
+                    not ip.startswith('169.254.') and 
+                    not ip.startswith('255.') and
+                    ip not in ips):
+                    ips.append(ip)
+                    
+    except Exception as e:
+        print(f"Error getting IPs: {e}")
+        pass
+    
+    return ips
+
+def start_ssh_tunnel():
+    """Start SSH tunnel and return public URL"""
+    print("\n🚀 正在启动SSH隧道...")
+    
+    tunnel_services = [
+        "serveo.net",
+        "ssh.localhost.run"
+    ]
+    
+    for service in tunnel_services:
+        try:
+            print(f"正在尝试连接 {service}...")
+            
+            # Start SSH tunnel process
+            cmd = f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -R 80:localhost:5004 {service}"
+            process = subprocess.Popen(
+                cmd,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                universal_newlines=True
+            )
+            
+            # Wait for tunnel to establish and get URL
+            start_time = time.time()
+            while time.time() - start_time < 15:  # 15 second timeout
+                if process.poll() is not None:
+                    break
+                    
+                output = process.stdout.readline()
+                if output:
+                    print(output.strip())
+                    
+                    # Look for public URL patterns
+                    url_patterns = [
+                        r'https?://[\w\-\.]+\.(serveo\.net|localhost\.run)',
+                        r'Forwarding HTTP traffic from (https?://[\w\-\.]+)'
+                    ]
+                    
+                    for pattern in url_patterns:
+                        match = re.search(pattern, output)
+                        if match:
+                            public_url = match.group(1) if match.lastindex else match.group(0)
+                            if public_url.startswith('http'):
+                                print(f"\n🎉 隧道建立成功！")
+                                print(f"📱 公网地址: {public_url}")
+                                print(f"🔗 分享此链接给郑州同事")
+                                return process, public_url
+                
+                time.sleep(1)
+            
+            # If we get here, tunnel failed
+            process.terminate()
+            print(f"❌ 连接 {service} 失败")
+            
+        except Exception as e:
+            print(f"❌ 连接 {service} 出错: {e}")
+    
+    print("\n⚠️  SSH隧道服务暂时不可用")
+    print("\n🌐 替代方案:")
+    
+    # Show available network IPs
+    all_ips = get_all_local_ips()
+    if all_ips:
+        for ip in all_ips:
+            if ip.startswith('10.'):
+                print(f"   1. 局域网访问: http://{ip}:5004")
+            elif ip.startswith('26.'):
+                print(f"   2. VPN网络访问: http://{ip}:5004")
+    
+    print("   3. 手动启动ngrok: ngrok http 5004")
+    print("   4. 使用其他内网穿透工具")
+    return None, None
+
+def start_tunnel_thread():
+    """Start tunnel in background thread"""
+    def tunnel_worker():
+        time.sleep(2)  # Wait for Flask to start
+        process, url = start_ssh_tunnel()
+        if process:
+            # Keep tunnel alive
+            try:
+                process.wait()
+            except:
+                pass
+    
+    tunnel_thread = threading.Thread(target=tunnel_worker, daemon=True)
+    tunnel_thread.start()
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5004)
+    print("="*60)
+    print("🎨 AI 图像生成与编辑服务")
+    print("="*60)
+    print(f"📁 上传目录: {app.config['UPLOAD_FOLDER']}")
+    print("\n📍 访问地址:")
+    print(f"   本地: http://localhost:5004")
+    
+    # Get all network IPs
+    all_ips = get_all_local_ips()
+    if all_ips:
+        for ip in all_ips:
+            if ip.startswith('10.'):
+                print(f"   局域网: http://{ip}:5004")
+            elif ip.startswith('26.'):
+                print(f"   VPN网络: http://{ip}:5004")
+            else:
+                print(f"   网络: http://{ip}:5004")
+    
+    print("\n🌐 正在启动公网隧道...")
+    
+    # Start tunnel in background
+    start_tunnel_thread()
+    
+    print("\n🚀 启动Flask服务器...")
+    print("按 Ctrl+C 停止服务")
+    print("="*60)
+    
+    try:
+        # Run the app accessible from network
+        app.run(host='0.0.0.0', port=5004, debug=True)
+    except KeyboardInterrupt:
+        print("\n👋 服务已停止")
